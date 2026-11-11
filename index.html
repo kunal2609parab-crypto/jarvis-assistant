@@ -1,0 +1,218 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050a14">
+<title>JARVIS | Personal AI</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#050a14;color:#e8f4ff;
+ font-family:Arial,sans-serif;min-height:100vh;
+}
+header{text-align:center;padding:25px 15px}
+h1{letter-spacing:9px;color:#61d9ff;font-size:30px}
+header p{color:#7b9bb7;font-size:12px;letter-spacing:3px}
+main{max-width:550px;margin:auto;padding:15px}
+.orb{
+ width:190px;height:190px;border-radius:50%;
+ margin:35px auto 20px;
+ border:2px solid #41caff;
+ display:flex;align-items:center;justify-content:center;
+ box-shadow:0 0 25px #087caa, inset 0 0 30px #087caa;
+}
+.orb span{font-size:55px;color:#75e2ff}
+.orb.active{animation:pulse 1.5s infinite}
+@keyframes pulse{
+ 50%{box-shadow:0 0 55px #00cfff,inset 0 0 50px #087caa}
+}
+#status{text-align:center;color:#6ddfff;margin:15px}
+.controls{display:flex;justify-content:center;gap:12px}
+button{
+ background:#102b40;color:#8be4ff;border:1px solid #248bb1;
+ padding:13px 18px;border-radius:12px;font-size:14px;
+ cursor:pointer;
+}
+button:active{background:#145477}
+.panel{
+ background:#0b1524;border:1px solid #1b354b;
+ padding:18px;border-radius:15px;margin-top:20px;
+}
+h2{font-size:17px;color:#7edfff}
+input{
+ width:100%;padding:13px;background:#07101d;
+ color:white;border:1px solid #29465d;
+ border-radius:9px;margin:8px 0;
+}
+#chat{height:160px;overflow:auto;font-size:14px}
+.message{padding:9px;margin:7px 0;border-radius:8px}
+.user{background:#102d45}
+.jarvis{background:#12251f;color:#a5f3cf}
+.task{padding:10px;border-bottom:1px solid #294052}
+.task button{float:right;padding:5px 9px}
+footer{text-align:center;color:#56728b;font-size:11px;padding:25px}
+</style>
+</head>
+<body>
+<header>
+<h1>J.A.R.V.I.S</h1>
+<p>PERSONAL INTELLIGENCE SYSTEM</p>
+</header>
+
+<main>
+<div class="orb" id="orb"><span>◉</span></div>
+<div id="status">SYSTEM ONLINE</div>
+
+<div class="controls">
+<button onclick="listen()">🎙 SPEAK</button>
+<button onclick="stopVoice()">■ STOP</button>
+</div>
+
+<section class="panel">
+<h2>CONVERSATION</h2>
+<div id="chat">
+<div class="message jarvis">JARVIS: Hello! I am ready for your commands.</div>
+</div>
+<input id="command" placeholder="Type your command...">
+<button onclick="send()">SEND COMMAND</button>
+</section>
+
+<section class="panel">
+<h2>MY TASKS</h2>
+<input id="taskInput" placeholder="Enter a new task">
+<button onclick="addTask()">+ ADD TASK</button>
+<div id="tasks"></div>
+</section>
+
+<footer>JARVIS SYSTEM · VERSION 0.1</footer>
+</main>
+
+<script>
+const chat=document.getElementById("chat");
+const statusText=document.getElementById("status");
+const orb=document.getElementById("orb");
+
+function showMessage(text,type){
+ const div=document.createElement("div");
+ div.className="message "+type;
+ div.textContent=text;
+ chat.appendChild(div);
+ chat.scrollTop=chat.scrollHeight;
+}
+
+function speak(text){
+ if(!("speechSynthesis" in window)){
+ statusText.textContent="Speech not supported";
+ return;
+ }
+ speechSynthesis.cancel();
+ const speech=new SpeechSynthesisUtterance(text);
+ speech.rate=0.95;
+ speech.pitch=0.9;
+ speech.volume=1;
+ speech.onstart=()=>{
+ statusText.textContent="JARVIS IS SPEAKING";
+ orb.classList.add("active");
+ };
+ speech.onend=()=>{
+ statusText.textContent="SYSTEM ONLINE";
+ orb.classList.remove("active");
+ };
+ speechSynthesis.speak(speech);
+}
+
+function respond(text){
+ const answer="I received your command: "+text+
+ ". My AI intelligence module will be connected in the next development stage.";
+ showMessage("JARVIS: "+answer,"jarvis");
+ speak(answer);
+}
+
+function send(){
+ const input=document.getElementById("command");
+ const text=input.value.trim();
+ if(!text)return;
+ showMessage("YOU: "+text,"user");
+ input.value="";
+ respond(text);
+}
+
+function listen(){
+ const Recognition=window.SpeechRecognition||
+ window.webkitSpeechRecognition;
+ if(!Recognition){
+ statusText.textContent="Voice recognition unavailable in this browser";
+ return;
+ }
+ const recognition=new Recognition();
+ recognition.lang="en-IN";
+ recognition.interimResults=false;
+ recognition.onstart=()=>{
+ statusText.textContent="LISTENING...";
+ orb.classList.add("active");
+ };
+ recognition.onresult=(event)=>{
+ document.getElementById("command").value=
+ event.results[0][0].transcript;
+ orb.classList.remove("active");
+ send();
+ };
+ recognition.onerror=()=>{
+ statusText.textContent="Microphone error. Try again.";
+ orb.classList.remove("active");
+ };
+ recognition.onend=()=>{
+ orb.classList.remove("active");
+ if(statusText.textContent==="LISTENING...")
+ statusText.textContent="SYSTEM ONLINE";
+ };
+ recognition.start();
+}
+
+function stopVoice(){
+ speechSynthesis.cancel();
+ orb.classList.remove("active");
+ statusText.textContent="SYSTEM ONLINE";
+}
+
+let tasks=JSON.parse(localStorage.getItem("jarvisTasks")||"[]");
+
+function saveTasks(){
+ localStorage.setItem("jarvisTasks",JSON.stringify(tasks));
+ renderTasks();
+}
+
+function addTask(){
+ const input=document.getElementById("taskInput");
+ const value=input.value.trim();
+ if(!value)return;
+ tasks.push({text:value,done:false});
+ input.value="";
+ saveTasks();
+}
+
+function renderTasks(){
+ const container=document.getElementById("tasks");
+ container.replaceChildren();
+ tasks.forEach((task,index)=>{
+ const div=document.createElement("div");
+ div.className="task";
+ const label=document.createElement("span");
+ label.textContent=(task.done?"✓ ":"")+task.text;
+ if(task.done)label.style.textDecoration="line-through";
+ const button=document.createElement("button");
+ button.textContent=task.done?"Undo":"Done";
+ button.onclick=()=>{
+ tasks[index].done=!tasks[index].done;
+ saveTasks();
+ };
+ div.append(label,button);
+ container.appendChild(div);
+ });
+}
+renderTasks();
+</script>
+</body>
+</html>
