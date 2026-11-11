@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS GPU Test</title>
+<style>
+body {
+ background:#050a14;
+ color:#dff6ff;
+ font-family:Arial;
+ padding:25px;
+ text-align:center;
+}
+h1 {color:#55d9ff}
+button {
+ background:#12354d;
+ color:#8beaff;
+ padding:16px 25px;
+ border:1px solid #42caff;
+ border-radius:12px;
+ font-size:16px;
+}
+#result {
+ margin-top:25px;
+ padding:20px;
+ background:#101d2b;
+ border-radius:12px;
+ white-space:pre-wrap;
+}
+</style>
+</head>
+<body>
+<h1>JARVIS GPU DIAGNOSTICS</h1>
+<p>Testing your device's GPU...</p>
+<button onclick="testGPU()">START GPU TEST</button>
+<div id="result">Waiting for test...</div>
+
+<script>
+async function testGPU() {
+ const result=document.getElementById("result");
+ result.textContent="Checking WebGPU...";
+
+ try {
+  if (!navigator.gpu) {
+   throw new Error("WebGPU is unavailable");
+  }
+
+  const adapter=await navigator.gpu.requestAdapter();
+
+  if (!adapter) {
+   throw new Error("No GPU adapter available");
+  }
+
+  result.textContent="Adapter found. Creating GPU device...";
+
+  const device=await adapter.requestDevice();
+
+  device.lost.then(info=>{
+   result.textContent+="\nGPU device lost: "+info.reason;
+  });
+
+  result.textContent=
+   "SUCCESS!\n\n"+
+   "GPU DEVICE CREATED\n"+
+   "WebGPU is operational.\n"+
+   "Adapter: "+(adapter.info?.architecture||"Available")+
+   "\n\nNext: AI model compatibility test.";
+
+  device.destroy();
+
+ } catch(error) {
+  result.textContent=
+   "GPU TEST FAILED\n\n"+error.message;
+ }
+}
+</script>
+</body>
+</html>
