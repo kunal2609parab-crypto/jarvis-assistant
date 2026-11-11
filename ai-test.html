@@ -97,6 +97,43 @@ const MODEL =
 "Llama-3.2-1B-Instruct-q4f16_1-MLC";
 
 let engine = null;
+window.startListening = function() {
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    status("Speech recognition unavailable.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+
+  recognition.lang = "en-IN";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    status("JARVIS is listening...");
+  };
+
+  recognition.onresult = (event) => {
+    const spokenText =
+      event.results[0][0].transcript;
+
+    document.getElementById("question").value =
+      spokenText;
+
+    askAI();
+  };
+
+  recognition.onerror = (event) => {
+    status("Microphone error: " + event.error);
+  };
+
+  recognition.start();
+};
+  
 let history = [
 {
 role:"system",
@@ -195,6 +232,17 @@ const answer=result.choices[0].message.content ||
 
 history.push({role:"assistant",content:answer});
 addMessage("JARVIS: "+answer);
+  
+const speech = new SpeechSynthesisUtterance(answer);
+
+speech.lang = "en-IN";
+speech.rate = 0.95;
+speech.pitch = 0.85;
+speech.volume = 1;
+
+speechSynthesis.cancel();
+speechSynthesis.speak(speech);
+  
 status("AI ENGINE READY");
 
 }catch(error){
