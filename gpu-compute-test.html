@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS Compute Test</title>
+<style>
+body {
+ background:#050a14;
+ color:#dff6ff;
+ font-family:Arial;
+ padding:25px;
+ text-align:center;
+}
+h1 {color:#55d9ff}
+button {
+ background:#12354d;
+ color:#8beaff;
+ padding:16px 25px;
+ border:1px solid #42caff;
+ border-radius:12px;
+ font-size:16px;
+}
+#result {
+ margin-top:25px;
+ padding:20px;
+ background:#101d2b;
+ border-radius:12px;
+ white-space:pre-wrap;
+}
+</style>
+</head>
+<body>
+<h1>JARVIS COMPUTE TEST</h1>
+<p>Testing actual GPU calculations.</p>
+<button onclick="testCompute()">START COMPUTE TEST</button>
+<div id="result">Waiting for test...</div>
+
+<script>
+async function testCompute() {
+ const result=document.getElementById("result");
+ let device;
+
+ try {
+  result.textContent="Requesting GPU...";
+  
+  if(!navigator.gpu) throw new Error("WebGPU unavailable");
+
+  const adapter=await navigator.gpu.requestAdapter();
+  if(!adapter) throw new Error("No adapter");
+
+  device=await adapter.requestDevice();
+
+  const shader=device.createShaderModule({
+   code:`
+    @group(0) @binding(0)
+    var<storage, read_write> output: array<u32>;
+
+    @compute @workgroup_size(1)
+    fn main() {
+      output[0] = 42u;
+    }
+   `
+  });
+
+  const pipeline=device.createComputePipeline({
+   layout:"auto",
+   compute:{module:shader,entryPoint:"main"}
+  });
+
+  const buffer=device.createBuffer({
+   size:4,
+   usage:GPUBufferUsage.STORAGE |
+         GPUBufferUsage.COPY_SRC
+  });
+
+  const readBuffer=device.createBuffer({
+   size:4,
+   usage:GPUBufferUsage.MAP_READ |
+         GPUBufferUsage.COPY_DST
+  });
+
+  const bindGroup=device.createBindGroup({
+   layout:pipeline.getBindGroupLayout(0),
+   entries:[{
+    binding:0,
+    resource:{buffer:buffer}
+   }]
+  });
+
+  const encoder=device.createCommandEncoder();
+  const pass=encoder.beginComputePass();
+
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0,bindGroup);
+  pass.dispatchWorkgroups(1);
+  pass.end();
+
+  encoder.copyBufferToBuffer(
+   buffer,0,readBuffer,0,4
+  );
+
+  device.queue.submit([encoder.finish()]);
+
+  await readBuffer.mapAsync(GPUMapMode.READ);
+
+  const value=new Uint32Array(
+   readBuffer.getMappedRange()
+  )[0];
+
+  readBuffer.unmap();
+
+  if(value!==42) throw new Error("Incorrect result");
+
+  result.textContent=
+   "SUCCESS!\n\n"+
+   "GPU COMPUTATION PASSED\n"+
+   "Expected result: 42\n"+
+   "Actual result: "+value+
+   "\n\nYour GPU executed a compute shader.";
+
+  buffer.destroy();
+  readBuffer.destroy();
+
+ } catch(error) {
+  result.textContent="TEST FAILED\n\n"+error.message;
+ } finally {
+  if(device) device.destroy();
+ }
+}
+</script>
+</body>
+  </html>
+  
