@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050a14">
+<title>JARVIS AI Engine Test</title>
+<style>
+body {
+  background:#050a14;
+  color:#e3f5ff;
+  font-family:Arial,sans-serif;
+  padding:20px;
+  max-width:600px;
+  margin:auto;
+}
+h1 {color:#5bdcff;text-align:center}
+.panel {
+  background:#101d2b;
+  border:1px solid #24516b;
+  border-radius:14px;
+  padding:18px;
+  margin:18px 0;
+}
+button {
+  background:#12354d;
+  color:#8beaff;
+  border:1px solid #42caff;
+  border-radius:10px;
+  padding:14px;
+  font-size:15px;
+  width:100%;
+  margin:6px 0;
+}
+button:disabled {opacity:.4}
+input {
+  width:100%;
+  box-sizing:border-box;
+  padding:14px;
+  background:#07101d;
+  border:1px solid #29465d;
+  border-radius:9px;
+  color:white;
+  margin:8px 0;
+  font-size:15px;
+}
+#status {
+  color:#75dfff;
+  line-height:1.6;
+  overflow-wrap:anywhere;
+}
+#chat {
+  white-space:pre-wrap;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+progress {width:100%;height:15px}
+.small {font-size:12px;color:#8ba8bc}
+</style>
+</head>
+<body>
+
+<h1>J.A.R.V.I.S</h1>
+<p style="text-align:center">
+LOCAL ARTIFICIAL INTELLIGENCE ENGINE
+</p>
+
+<div class="panel">
+<h3>AI ENGINE STATUS</h3>
+<div id="status">Waiting for initialization...</div>
+<progress id="progress" value="0" max="1"></progress>
+<button id="loadBtn" onclick="loadAI()">
+INITIALIZE AI ENGINE
+</button>
+<p class="small" id="model">
+Llama 3.2 1B Instruct · Q4F16
+</p>
+</div>
+
+<div class="panel">
+<h3>CONVERSATION</h3>
+<div id="chat">JARVIS: Awaiting AI initialization.</div>
+<input id="question"
+placeholder="Ask JARVIS a question..."
+>
+<button id="sendBtn" onclick="askAI()" disabled>
+SEND TO JARVIS
+</button>
+</div>
+
+<script type="module">
+import {CreateMLCEngine}
+from "https://esm.run/@mlc-ai/web-llm";
+
+const MODEL =
+"Llama-3.2-1B-Instruct-q4f16_1-MLC";
+
+let engine = null;
+let history = [
+{
+role:"system",
+content:"You are JARVIS, a helpful personal AI assistant. Answer clearly, accurately and concisely. If you are uncertain, say so."
+}
+];
+
+const statusEl=document.getElementById("status");
+const progressEl=document.getElementById("progress");
+const chatEl=document.getElementById("chat");
+const loadBtn=document.getElementById("loadBtn");
+const sendBtn=document.getElementById("sendBtn");
+
+function status(text){
+statusEl.textContent=text;
+}
+
+function addMessage(text){
+chatEl.textContent += "\n\n"+text;
+chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+window.loadAI=async function(){
+if(engine)return;
+
+loadBtn.disabled=true;
+status("Checking GPU and loading AI library...");
+
+try{
+if(!navigator.gpu){
+throw new Error("WebGPU is unavailable.");
+}
+
+const adapter=await navigator.gpu.requestAdapter();
+if(!adapter){
+throw new Error("No compatible GPU adapter found.");
+}
+
+status("Downloading and initializing AI model...");
+
+engine=await CreateMLCEngine(
+MODEL,
+{
+initProgressCallback:(report)=>{
+status(report.text);
+if(typeof report.progress==="number"){
+progressEl.value=report.progress;
+}
+},
+logLevel:"WARN"
+},
+{
+context_window_size:2048
+}
+);
+
+progressEl.value=1;
+status("JARVIS AI ENGINE READY");
+addMessage("JARVIS: My AI brain is online.");
+sendBtn.disabled=false;
+loadBtn.textContent="AI ENGINE READY";
+
+}catch(error){
+engine=null;
+status("Initialization failed: "+error.message);
+loadBtn.disabled=false;
+loadBtn.textContent="RETRY INITIALIZATION";
+console.error(error);
+}
+};
+
+window.askAI=async function(){
+if(!engine)return;
+
+const input=document.getElementById("question");
+const question=input.value.trim();
+if(!question)return;
+
+input.value="";
+sendBtn.disabled=true;
+addMessage("YOU: "+question);
+
+history.push({role:"user",content:question});
+
+try{
+status("JARVIS is thinking...");
+
+const result=await engine.chat.completions.create({
+messages:history,
+temperature:0.7,
+max_tokens:180
+});
+
+const answer=result.choices[0].message.content ||
+"No response generated.";
+
+history.push({role:"assistant",content:answer});
+addMessage("JARVIS: "+answer);
+status("AI ENGINE READY");
+
+}catch(error){
+history.pop();
+status("Response error: "+error.message);
+addMessage("JARVIS: I couldn't generate a response.");
+console.error(error);
+}finally{
+sendBtn.disabled=false;
+}
+};
+
+document.getElementById("question")
+.addEventListener("keydown",event=>{
+if(event.key==="Enter"&&!sendBtn.disabled){
+askAI();
+}
+});
+</script>
+</body>
+  </html>
+  
