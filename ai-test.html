@@ -78,17 +78,40 @@ Llama 3.2 1B Instruct · Q4F16
 </p>
 </div>
 
+
 <div class="panel">
 <h3>CONVERSATION</h3>
-<div id="chat">JARVIS: Awaiting AI initialization.</div>
-<input id="question"
-placeholder="Ask JARVIS a question..."
->
-<button id="sendBtn" onclick="askAI()" disabled>
-SEND TO JARVIS
-</button>
+
+<div id="chat">
+JARVIS: Awaiting AI initialization.
 </div>
 
+<input
+id="question"
+placeholder="Talk to JARVIS..."
+>
+
+<button
+id="voiceBtn"
+onclick="startListening()"
+>
+🎙️ TALK TO JARVIS
+</button>
+
+<button
+id="sendBtn"
+onclick="askAI()"
+disabled
+>
+SEND TO JARVIS
+</button>
+
+<button onclick="speechSynthesis.cancel()">
+🔇 STOP SPEAKING
+</button>
+
+</div>
+  
 <script type="module">
 import {CreateMLCEngine}
 from "https://esm.run/@mlc-ai/web-llm";
