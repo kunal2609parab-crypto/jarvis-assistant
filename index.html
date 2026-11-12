@@ -196,11 +196,13 @@ async function respond(text){
 
   try{
 
-    const result=await engine.chat.completions.create({
-      messages:conversation,
-      temperature:0.7,
-      max_tokens:180
-    });
+    
+     const result = await engine.chat.completions.create({
+     messages: conversation,
+     temperature: 0.5,
+     max_tokens: 80
+     });
+   
 
     const answer=result.choices[0].message.content
       || "I couldn't generate a response.";
@@ -209,6 +211,12 @@ async function respond(text){
       role:"assistant",
       content:answer
     });
+   if (conversation.length > 7) {
+  conversation = [
+    conversation[0],
+    ...conversation.slice(-6)
+  ];
+   }
 
     showMessage("JARVIS: "+answer,"jarvis");
     speak(answer);
