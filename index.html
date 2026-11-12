@@ -67,8 +67,9 @@ footer{text-align:center;color:#56728b;font-size:11px;padding:25px}
 <div class="controls">
 <button onclick="listen()">🎙 SPEAK</button>
 <button onclick="stopVoice()">■ STOP</button>
-<button onclick="alert('JARVIS BUTTON WORKS'); loadAI()">
-🧠 LOAD OFFLINE AI
+
+<button id="loadBtn" onclick="loadAI()">
+  🧠 LOAD OFFLINE AI
 </button>
 </div>
 
@@ -104,9 +105,7 @@ let conversation = [
 ];
 
 async function loadAI() {
-  const btn = document.querySelector(
-    'button[onclick="loadAI()"]'
-  );
+  const btn = document.getElementById("loadBtn");
 
   if (engine) return;
 
